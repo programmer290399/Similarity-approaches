@@ -74,10 +74,11 @@ for dish in dishes :
     main[dish] = list()
     bar.next()
 bar.finish()
+criteria = float(input("\n Enter similarity cut-off score (0< cut-off < 1) :"))
 bar = IncrementalBar('Processing', max= pow(93655,2))
 count = 0  
 for match  in itertools.product(dishes, dishes) :
-    if get_similarity(match[0],match[1]) > 0.5 : 
+    if get_similarity(match[0],match[1]) > criteria : 
             main[match[0]].append(match[1])
     if count % 10000 == 0 : 
         out_file.seek(0)                        
