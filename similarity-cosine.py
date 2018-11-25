@@ -68,23 +68,38 @@ def get_char_wise_similarity(a, b):
     except: # len(s) == 0
         return 0
 main = dict()
+query = input('Enter your query :')
 print('\n Generating index in memory , please wait .....')
 bar = IncrementalBar('Loading', max= 93655)
 for dish in dishes :
-    main[dish] = list()
-    bar.next()
+    if  not main.get(dish,False) :
+        if dish == query:
+            main[dish] = list()
+            bar.next()
 bar.finish()
 criteria = float(input("\n Enter similarity cut-off score (0< cut-off < 1) :"))
 bar = IncrementalBar('Processing', max= pow(93655,2))
 count = 0  
-for match  in itertools.product(dishes, dishes) :
-    if get_similarity(match[0],match[1]) > criteria : 
-            main[match[0]].append(match[1])
+# for match  in itertools.product(dishes, dishes) :
+#     if get_similarity(match[0],match[1]) > criteria : 
+#             main[match[0]].append(match[1])
+#     if count % 10000 == 0 : 
+#         out_file.seek(0)                        
+#         out_file.truncate()
+#         json.dump(main,out_file)
+#         out_file.write('\n')
+#     count += 1
+#     bar.next()
+for dish  in dishes :
+    if get_char_wise_similarity(query,dish) > criteria : 
+            if dish not in main[query] : main[query].append(dish)
     if count % 10000 == 0 : 
+        out_file = open('similarity_index_new1.json' , 'w+' , encoding='utf-8')
         out_file.seek(0)                        
         out_file.truncate()
         json.dump(main,out_file)
         out_file.write('\n')
+        out_file.close()
     count += 1
     bar.next()
 
