@@ -7,6 +7,8 @@ import json
 from progress.bar import IncrementalBar
 import itertools
 from read_data import read_JSON
+from fuzzywuzzy import fuzz
+from fuzzywuzzy import process
 
 
 dishes = read_JSON('zomato_menu.json')
@@ -66,21 +68,14 @@ def get_char_wise_similarity(a, b):
         return sum(s)/float(len(s))
     except: # len(s) == 0
         return 0
+def levenshtein(dish_A, dish_B):        
+        a = 0.5 * fuzz.ratio(dish_A, dish_B)
+        b = 1.5 * fuzz.partial_ratio(dish_A, dish_B)
+        c = 1.5 * fuzz.token_sort_ratio(dish_A, dish_B)
+        d = 0.5 * fuzz.token_set_ratio(dish_A, dish_B)
+        score = (a + b + c + d)/400
+        return score 
 
-# case[0] = input('Enter your case[0] :')
-
-# criteria = float(input("\n Enter similarity cut-off score (0< cut-off < 1) :"))
-
-# for match  in itertools.product(dishes, dishes) :
-#     if get_similarity(match[0],match[1]) > criteria : 
-#             main[match[0]].append(match[1])
-#     if count % 10000 == 0 : 
-#         out_file.seek(0)                        
-#         out_file.truncate()
-#         json.dump(main,out_file)
-#         out_file.write('\n')
-#     count += 1
-#     bar.next()
 
 test_cases = ['Indian Chilly Burger', 'Onion Pakoda', 'Tandoori Maggi', 'Mini Barbeque Sandwich', 'Manchurian with Chowmein','Potato Chaat','Mysore Dosa', 'Crispy Corn', 'Sev Paneer', 'Hari Bhari Sabji', 'Shrikhand','Sabudana Khichadi']
 crit_list = [0.5, 0.6, 0.7, 0.8, 0.9]
@@ -101,7 +96,8 @@ for case in  itertools.product(test_cases,crit_list) :
     bar = IncrementalBar('Processing', max= pow(93655,2))
     
     for dish  in dishes :
-        if  get_similarity(case[0],dish) > case[1] : 
+        score = (0.5 * get_similarity(case[0],dish)) + (0.5 * levenshtein(case[0],dish))
+        if  score > case[1] : 
                 if dish not in main[case[0]] : main[case[0]].append(dish) 
         
             
@@ -117,6 +113,4 @@ for case in  itertools.product(test_cases,crit_list) :
 
 
 print('Done!')
-
-
 
