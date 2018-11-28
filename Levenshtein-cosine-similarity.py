@@ -19,7 +19,7 @@ stemmer = PorterStemmer()
 
 def create_chunks(bulk_data, cpu_count , num_of_dishes ) :
     total_data_length = len(bulk_data)
-    len_of_chunks = int(total_data_length/(cpu_count * 2 ))
+    len_of_chunks = int(total_data_length/(cpu_count))
     
     chunks = list()
     for i in range(0, total_data_length , len_of_chunks):
@@ -100,13 +100,13 @@ def create_test_cases(test_cases, f_name , dishes ):
     for dish in test_cases :
         crit_data[dish] = get_crit_list(dish,freq_dist)
     cases = list()
-    print(crit_data)
+
     
     for key,value in  crit_data.items():
-        cases.append(list(itertools.product(key,value)))
-    print(cases)
+        cases.append(list(itertools.product([key],value)))
     
-    bar = IncrementalBar('Processing', max= len(list(cases))) 
+    
+    
     for i in range(0,len(cases)) :
         for case in cases[i] :
             out_file = open(f_name , 'a+' , encoding='utf-8')
@@ -115,7 +115,7 @@ def create_test_cases(test_cases, f_name , dishes ):
             out_file.write('\n')
             out_file.close()
             main = dict()
-            print('\n Generating index in memory , please wait .....')
+            print('\n working on =>', str(case[0])+':'+str(case[1]))
             for dish in dishes :
                 if  not main.get(dish,False) :
                     if dish == case[0]:
@@ -133,7 +133,7 @@ def create_test_cases(test_cases, f_name , dishes ):
             json.dump(main,out_file)
             out_file.write('\n')
             out_file.close()    
-        bar.next()
+        
         
 
 if __name__=='__main__':
@@ -145,7 +145,7 @@ if __name__=='__main__':
 
     freq_dist = json.loads(open('dish_freq.json').read())
 
-    num_of_dishes = int(input("Enter number of dishes to process"))
+    num_of_dishes = int(input("Enter number of dishes to process :"))
 
     dishes_to_process = dishes[:num_of_dishes]
     
