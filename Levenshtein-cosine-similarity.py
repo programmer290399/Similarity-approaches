@@ -144,11 +144,7 @@ if __name__=='__main__':
     dishes_to_process = dishes[:num_of_dishes]
 
     out_file = open('main.json','a+',encoding='utf-8')
-    #chunks = create_chunks(dishes_to_process,cpu_count,num_of_dishes)
 
-    # filenames = get_file_names(len(chunks))
-    # processes = list()
-    # for i in range(0,len(chunks)):
     with multiprocessing.Pool(processes= cpu_count * 2) as pool:
         results = pool.starmap(create_test_cases, [dishes_to_process] ) 
         for result in results :
@@ -156,19 +152,6 @@ if __name__=='__main__':
             json.dump(result,out_file)
 
 
-    #     processes.append(multiprocessing.Process(target=create_test_cases , args=(chunks[i] , filenames[i] , dishes )))
-    # for i in range(0,(len(processes)- cpu_count + 1) , cpu_count):
-    #     rng = list(range(0,cpu_count))
-    #     for j in rng :
-    #         processes[j].start()
-    #     for j in rng :
-    #         processes[j].join()
-    # main_file = open('main.json', 'a+' , encoding='utf-8')
-    # for file_name in filenames :
-    #     main_file.write('\n')
-    #     data = json.loads(open(file_name).read())
-    #     json.dump(data , main_file)
-    # main_file.close()
 
 
 
