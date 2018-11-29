@@ -10,6 +10,7 @@ from read_data import read_JSON
 from fuzzywuzzy import fuzz
 from fuzzywuzzy import process
 import multiprocessing
+from multiprocessing import pool 
 import threading 
 
 stop = stopwords.words('english')
@@ -94,7 +95,10 @@ def get_crit_list(dish_name , freq_dist):
     else : crit_list = [0.6,0.7]
     return crit_list
 
-def create_test_cases(test_cases, f_name , dishes ):
+def create_test_cases(*argv):
+    test_cases = list()
+    for arg in argv : test_cases.append(arg)
+    dishes = read_JSON('dish_freq.json')
     crit_data = dict()
     freq_dist = json.loads(open('dish_freq.json').read())
     for dish in test_cases :
@@ -106,33 +110,23 @@ def create_test_cases(test_cases, f_name , dishes ):
         cases.append(list(itertools.product([key],value)))
     
     
-    
+    main = dict()
     for i in range(0,len(cases)) :
         for case in cases[i] :
-            out_file = open(f_name , 'a+' , encoding='utf-8')
-            out_file.write('\n')
-            out_file.write('------------'+str(case[0])+':'+str(case[1])+'------------')
-            out_file.write('\n')
-            out_file.close()
-            main = dict()
-            print('\n working on =>', str(case[0])+':'+str(case[1]))
-            for dish in dishes :
-                if  not main.get(dish,False) :
-                    if dish == case[0]:
-                        main[dish] = list()
             
-
+            case_tag = str(case[0])+'-'+str(case[1])
+            print('\n working on =>', case_tag)
+            main[case_tag] = list()
+            bar = IncrementalBar('Processing', max = 33302)
             for dish  in dishes :
+                
                 score = (0.5 * get_similarity(case[0],dish)) + (0.5 * levenshtein(case[0],dish))
                 if  score > case[1] : 
-                        if dish not in main[case[0]] : main[case[0]].append(dish) 
-                
+                        if dish not in main[case_tag] : main[case_tag].append(dish) 
+                bar.next()
+            bar.finish()
 
-            out_file = open(f_name , 'a+' , encoding='utf-8')
-            out_file.write('\n')
-            json.dump(main,out_file)
-            out_file.write('\n')
-            out_file.close()    
+    return main
         
         
 
@@ -148,25 +142,33 @@ if __name__=='__main__':
     num_of_dishes = int(input("Enter number of dishes to process :"))
 
     dishes_to_process = dishes[:num_of_dishes]
-    
-    chunks = create_chunks(dishes_to_process,cpu_count,num_of_dishes)
 
-    filenames = get_file_names(len(chunks))
-    processes = list()
-    for i in range(0,len(chunks)):
-        processes.append(multiprocessing.Process(target=create_test_cases , args=(chunks[i] , filenames[i] , dishes )))
-    for i in range(0,(len(processes)- cpu_count + 1) , cpu_count):
-        rng = list(range(0,cpu_count))
-        for j in rng :
-            processes[j].start()
-        for j in rng :
-            processes[j].join()
-    main_file = open('main.json', 'a+' , encoding='utf-8')
-    for file_name in filenames :
-        main_file.write('\n')
-        data = json.loads(open(file_name).read())
-        json.dump(data , main_file)
-    main_file.close()
+    out_file = open('main.json','a+',encoding='utf-8')
+    #chunks = create_chunks(dishes_to_process,cpu_count,num_of_dishes)
+
+    # filenames = get_file_names(len(chunks))
+    # processes = list()
+    # for i in range(0,len(chunks)):
+    with multiprocessing.Pool(processes= cpu_count * 2) as pool:
+        results = pool.starmap(create_test_cases, [dishes_to_process] ) 
+        for result in results :
+            print(result)
+            json.dump(result,out_file)
+
+
+    #     processes.append(multiprocessing.Process(target=create_test_cases , args=(chunks[i] , filenames[i] , dishes )))
+    # for i in range(0,(len(processes)- cpu_count + 1) , cpu_count):
+    #     rng = list(range(0,cpu_count))
+    #     for j in rng :
+    #         processes[j].start()
+    #     for j in rng :
+    #         processes[j].join()
+    # main_file = open('main.json', 'a+' , encoding='utf-8')
+    # for file_name in filenames :
+    #     main_file.write('\n')
+    #     data = json.loads(open(file_name).read())
+    #     json.dump(data , main_file)
+    # main_file.close()
 
 
 
