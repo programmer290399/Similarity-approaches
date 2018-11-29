@@ -11,7 +11,7 @@ from fuzzywuzzy import fuzz
 from fuzzywuzzy import process
 import multiprocessing
 from multiprocessing import pool 
-import threading 
+import psutil
 
 stop = stopwords.words('english')
 WORD = re.compile(r'\w+')
@@ -146,10 +146,15 @@ if __name__=='__main__':
     out_file = open('main.json','a+',encoding='utf-8')
 
     with multiprocessing.Pool(processes= cpu_count * 2) as pool:
+        parent = psutil.Process()
+        parent.nice(psutil.REALTIME_PRIORITY_CLASS)
+        for child in parent.children():
+            child.nice(psutil.REALTIME_PRIORITY_CLASS)
         results = pool.starmap(create_test_cases, [dishes_to_process] ) 
         for result in results :
             print(result)
             json.dump(result,out_file)
+
 
 
 
