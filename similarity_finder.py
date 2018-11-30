@@ -22,7 +22,6 @@ stemmer = PorterStemmer()
 
 class Similarity():
 
-    
 
     def euclidean_distance(self,x,y):
 
@@ -49,8 +48,6 @@ class Similarity():
 
     def square_rooted(self,x):
 
-        
-
         return round(sqrt(sum([a*a for a in x])),3)
 
     def jaccard_similarity(self,x,y):
@@ -76,7 +73,7 @@ class Similarity():
         y = self.text_to_vector(y.strip().lower())
         return float((decimal.Decimal(self.euclidean_distance(x,y)) + decimal.Decimal(self.manhattan_distance(x,y)) + decimal.Decimal(self.minkowski_distance(x,y)) + decimal.Decimal(self.jaccard_similarity(x,y)))/4)
     def get_cosine(self,vec1, vec2):
-        # print vec1, vec2
+
         intersection = set(vec1.keys()) & set(vec2.keys())
         numerator = sum([vec1[x] * vec2[x] for x in intersection])
 
@@ -177,13 +174,5 @@ if __name__=='__main__':
         for result in results :
             print(result)
             json.dump(result,out_file)
-
-
-
-
-
-
-
-
     print('\n Done!')
 
