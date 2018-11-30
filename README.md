@@ -1,4 +1,4 @@
 # Similarity-approaches
 
-## Please run `pip install progress` command before running similarity-cosine.py 
+## Please run `pip install progress` and `pip install psutil` command before running Levenshtein-cosine-similarity.py 
  
