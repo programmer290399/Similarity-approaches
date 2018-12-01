@@ -106,9 +106,9 @@ class Similarity():
 
     def get_crit_list(self,dish_name , freq_dist):
         freq = int(freq_dist[dish_name])
-        if freq >= 100 : crit_list = [0.8,0.9]
-        elif freq < 100 and freq >= 50 : crit_list = [0.7,0.8]
-        else : crit_list = [0.6,0.7]
+        if freq >= 100 : crit_list = [0.9]
+        elif freq < 100 and freq >= 50 : crit_list = [0.8]
+        else : crit_list = [0.7]
         return crit_list
 
     def create_test_cases(self,*argv):
@@ -125,8 +125,9 @@ class Similarity():
         for key,value in  crit_data.items():
             cases.append(list(itertools.product([key],value)))
         
-        
+        left_cases = []
         main = dict()
+        
         for i in range(0,len(cases)) :
             for case in cases[i] :
                 
@@ -138,10 +139,33 @@ class Similarity():
                     
                     score = (0.25 * self.get_similarity(case[0],dish)) + (0.25 * self.levenshtein(case[0],dish)) + (0.5 * self.get_mix_similarity(case[0],dish))
                     if  score > case[1] : 
-                            if dish not in main[case_tag] : main[case_tag].append(dish) 
+                            if dish not in main[case_tag] and dish != case[0] : main[case_tag].append(dish) 
                     bar.next()
+                if len(main[case_tag]) < 5 : 
+                    main.pop(case_tag)
+                    temp = case_tag.split('-')
+                    new_case = list()
+                    new_case.append(temp[0])
+                    new_case.append(float(temp[1]) - 0.1)
+                    left_cases.append(new_case)
                 bar.finish()
+        
 
+        
+        for case in left_cases :
+            
+            
+            case_tag = str(case[0]) + '-' + str(case[1])
+            print('\n working on =>', case_tag)
+            main[case_tag] = list()
+            bar = IncrementalBar('Processing', max = 33302)
+            for dish  in dishes :
+                
+                score = (0.25 * self.get_similarity(case[0],dish)) + (0.25 * self.levenshtein(case[0],dish)) + (0.5 * self.get_mix_similarity(case[0],dish))
+                if  score > case[1] : 
+                        if dish not in main[case_tag] and dish != case[0] : main[case_tag].append(dish) 
+                bar.next()
+            bar.finish()
         return main
 
 
