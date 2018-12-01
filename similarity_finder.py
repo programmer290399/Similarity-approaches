@@ -18,6 +18,7 @@ from decimal import Decimal
 stop = stopwords.words('english')
 WORD = re.compile(r'\w+')
 stemmer = PorterStemmer()
+import platform
 
 
 class Similarity():
@@ -154,7 +155,8 @@ if __name__=='__main__':
     except :
         cpu_count = 4 
     dishes = read_JSON('dish_freq.json')
-
+    
+    os_type = platform.system()
     similarity = Similarity()
 
     freq_dist = json.loads(open('dish_freq.json').read())
@@ -167,9 +169,11 @@ if __name__=='__main__':
 
     with multiprocessing.Pool(processes= cpu_count * 4) as pool:
         parent = psutil.Process()
-        parent.nice(psutil.REALTIME_PRIORITY_CLASS)
+        if os_type == 'Windows' : parent.nice(psutil.REALTIME_PRIORITY_CLASS) 
+        if os_type == 'Linux' : parent.nice(-20)
         for child in parent.children():
-            child.nice(psutil.REALTIME_PRIORITY_CLASS)
+                if os_type == 'Windows' : child.nice(psutil.REALTIME_PRIORITY_CLASS) 
+                if os_type == 'Linux' : child.nice(-20)
         results = pool.starmap( similarity.create_test_cases , [dishes_to_process] ) 
         for result in results :
             print(result)
