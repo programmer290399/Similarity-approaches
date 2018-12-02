@@ -18,6 +18,7 @@ from decimal import Decimal
 stop = stopwords.words('english')
 WORD = re.compile(r'\w+')
 stemmer = PorterStemmer()
+import os 
 import platform
 
 
@@ -124,23 +125,24 @@ class Similarity():
         
         for key,value in  crit_data.items():
             cases.append(list(itertools.product([key],value)))
-        
+        bar = IncrementalBar('Working on primary cases :', max = len(cases))
         left_cases = []
         main = dict()
         
         for i in range(0,len(cases)) :
+            bar.next()
             for case in cases[i] :
                 
                 case_tag = str(case[0])+'-'+str(case[1])
-                print('\n working on =>', case_tag)
+                
                 main[case_tag] = list()
-                bar = IncrementalBar('Processing', max = 33302)
+                
                 for dish  in dishes :
                     
                     score = (0.25 * self.get_similarity(case[0],dish)) + (0.25 * self.levenshtein(case[0],dish)) + (0.5 * self.get_mix_similarity(case[0],dish))
                     if  score > case[1] : 
                             if dish not in main[case_tag] and dish != case[0] : main[case_tag].append(dish) 
-                    bar.next()
+                
                 if len(main[case_tag]) < 5 : 
                     main.pop(case_tag)
                     temp = case_tag.split('-')
@@ -148,24 +150,24 @@ class Similarity():
                     new_case.append(temp[0])
                     new_case.append(float(temp[1]) - 0.1)
                     left_cases.append(new_case)
-                bar.finish()
+            
+        bar.finish()
         
-
+        bar = IncrementalBar('Working on remaining cases :', max = len(left_cases))
         
         for case in left_cases :
             
-            
             case_tag = str(case[0]) + '-' + str(case[1])
-            print('\n working on =>', case_tag)
+            
             main[case_tag] = list()
-            bar = IncrementalBar('Processing', max = 33302)
+            
             for dish  in dishes :
                 
                 score = (0.25 * self.get_similarity(case[0],dish)) + (0.25 * self.levenshtein(case[0],dish)) + (0.5 * self.get_mix_similarity(case[0],dish))
                 if  score > case[1] : 
                         if dish not in main[case_tag] and dish != case[0] : main[case_tag].append(dish) 
-                bar.next()
-            bar.finish()
+            bar.next()
+        bar.finish()
         return main
 
 
@@ -181,15 +183,16 @@ if __name__=='__main__':
     dishes = read_JSON('dish_freq.json')
     
     os_type = platform.system()
+    
     similarity = Similarity()
 
     freq_dist = json.loads(open('dish_freq.json').read())
 
-    num_of_dishes = int(input("Enter number of dishes to process :"))
+    start = int(input("Enter starting index (max= 31355 , min = 0) :"))
+    end = int(input("Enter End (max= 31355 , min = 0) :"))
+    dishes_to_process = dishes[start:end]
 
-    dishes_to_process = dishes[:num_of_dishes]
-
-    out_file = open('main.json','a+',encoding='utf-8')
+    out_file = open(r'main.json','a+',encoding='utf-8')
 
     with multiprocessing.Pool(processes= cpu_count * 4) as pool:
         parent = psutil.Process()
