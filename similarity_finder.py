@@ -115,11 +115,14 @@ class Similarity():
     def create_test_cases(self,*argv):
         test_cases = list()
         for arg in argv : test_cases.append(arg)
-        dishes = read_JSON('dish_freq.json')
+        dishes = read_JSON('dish_freq_cleaned.json')
         crit_data = dict()
-        freq_dist = json.loads(open('dish_freq.json').read())
+        freq_dist = json.loads(open('dish_freq_cleaned.json').read())
         for dish in test_cases :
-            crit_data[dish] = self.get_crit_list(dish,freq_dist)
+            
+                crit_data[dish] = self.get_crit_list(dish,freq_dist)
+            
+
         cases = list()
 
         
@@ -188,11 +191,11 @@ if __name__=='__main__':
 
     freq_dist = json.loads(open('dish_freq.json').read())
 
-    start = int(input("Enter starting index (max= 31355 , min = 0) :"))
-    end = int(input("Enter End (max= 31355 , min = 0) :"))
+    start = int(input("Enter starting index (max= 33302 , min = 0) :"))
+    end = int(input("Enter End (max= 33302 , min = 0) :"))
     dishes_to_process = dishes[start:end]
 
-    out_file = open(r'main.json','a+',encoding='utf-8')
+    out_file = open('Search_tags.json','a+',encoding='utf-8')
 
     with multiprocessing.Pool(processes= cpu_count * 4) as pool:
         parent = psutil.Process()
