@@ -1,7 +1,7 @@
 import re, math
 from collections import Counter
 from nltk.corpus import stopwords
-from nltk.stem.porter import *
+from nltk.stem.porter import PorterStemmer
 from nltk.corpus import wordnet as wn
 import json
 from progress.bar import IncrementalBar
@@ -10,17 +10,21 @@ from read_data import read_JSON
 from fuzzywuzzy import fuzz
 from fuzzywuzzy import process
 import multiprocessing
-from multiprocessing import pool 
+from multiprocessing import Process 
+from multiprocessing import Queue
 import psutil
-from math import*
+from math import sqrt 
 import decimal 
 from decimal import Decimal
+import os 
+import platform
+import time 
+import glob
+
+
 stop = stopwords.words('english')
 WORD = re.compile(r'\w+')
 stemmer = PorterStemmer()
-import os 
-import platform
-
 
 class Similarity():
 
@@ -97,6 +101,7 @@ class Similarity():
 
 
     def levenshtein(self,dish_A, dish_B):        
+            
             a = 0.5 * fuzz.ratio(dish_A, dish_B)
             b = 1.5 * fuzz.partial_ratio(dish_A, dish_B)
             c = 1.5 * fuzz.token_sort_ratio(dish_A, dish_B)
@@ -112,28 +117,24 @@ class Similarity():
         else : crit_list = [0.7]
         return crit_list
 
-    def create_test_cases(self,*argv):
-        test_cases = list()
-        for arg in argv : test_cases.append(arg)
-        dishes = read_JSON('dish_freq_cleaned.json')
+    def create_test_cases(self,test_cases, file_name , dishes , freq_dist):
+        out_file = open(file_name , 'a+', encoding='utf-8')
+        
         crit_data = dict()
-        freq_dist = json.loads(open('dish_freq_cleaned.json').read())
+        
         for dish in test_cases :
             
                 crit_data[dish] = self.get_crit_list(dish,freq_dist)
             
-
         cases = list()
-
         
         for key,value in  crit_data.items():
             cases.append(list(itertools.product([key],value)))
-        bar = IncrementalBar('Working on primary cases :', max = len(cases))
         left_cases = []
         main = dict()
         
         for i in range(0,len(cases)) :
-            bar.next()
+            
             for case in cases[i] :
                 
                 case_tag = str(case[0])+'-'+str(case[1])
@@ -153,11 +154,6 @@ class Similarity():
                     new_case.append(temp[0])
                     new_case.append(float(temp[1]) - 0.1)
                     left_cases.append(new_case)
-            
-        bar.finish()
-        
-        bar = IncrementalBar('Working on remaining cases :', max = len(left_cases))
-        
         for case in left_cases :
             
             case_tag = str(case[0]) + '-' + str(case[1])
@@ -169,9 +165,33 @@ class Similarity():
                 score = (0.25 * self.get_similarity(case[0],dish)) + (0.25 * self.levenshtein(case[0],dish)) + (0.5 * self.get_mix_similarity(case[0],dish))
                 if  score > case[1] : 
                         if dish not in main[case_tag] and dish != case[0] : main[case_tag].append(dish) 
-            bar.next()
-        bar.finish()
-        return main
+        print('Processed:',test_cases)
+        json.dump(main,out_file)
+        return
+    def chunkIt(self ,seq, num):
+        avg = len(seq) / float(num)
+        out = []
+        last = 0.0
+        while last < len(seq):
+            out.append(seq[int(last):int(last + avg)])
+            last += avg
+        return out
+    
+    def split_task(self , cpu_cores, dishes , freq_dist ,dishes_to_pass , slot_number) :
+        chunks = self.chunkIt(dishes, cpu_cores)
+        jobs = [] 
+        file_names = []
+        for i in range(0,len(chunks)): 
+            file_name = 'data_temp' + str(i) + str(slot_number) +'.json'
+            p = multiprocessing.Process(target= self.create_test_cases , args=(chunks[i],file_name,dishes_to_pass,freq_dist))
+            jobs.append(p)
+            file_names.append(file_name)
+            p.start()
+        for p in jobs: 
+            p.join()
+        return file_names 
+
+
 
 
 
@@ -179,34 +199,39 @@ class Similarity():
 
 
 if __name__=='__main__':
+    start = time.time()
     try :
-        cpu_count = multiprocessing.cpu_count()
+        cpu_count = int(multiprocessing.cpu_count()/2)
+        print('{} CPU Cores detected'.format(cpu_count))
     except :
-        cpu_count = 4 
-    dishes = read_JSON('dish_freq.json')
+        cpu_count = 2
     
-    os_type = platform.system()
+    dishes = read_JSON('./Resources/dish_freq_cleaned.json')
+    
     
     similarity = Similarity()
 
-    freq_dist = json.loads(open('dish_freq.json').read())
+    freq_dist = json.loads(open('./Resources/dish_freq_cleaned.json').read())
 
     start = int(input("Enter starting index (max= 33302 , min = 0) :"))
     end = int(input("Enter End (max= 33302 , min = 0) :"))
     dishes_to_process = dishes[start:end]
 
     out_file = open('Search_tags.json','a+',encoding='utf-8')
-
-    with multiprocessing.Pool(processes= cpu_count * 4) as pool:
-        parent = psutil.Process()
-        if os_type == 'Windows' : parent.nice(psutil.REALTIME_PRIORITY_CLASS) 
-        if os_type == 'Linux' : parent.nice(-20)
-        for child in parent.children():
-                if os_type == 'Windows' : child.nice(psutil.REALTIME_PRIORITY_CLASS) 
-                if os_type == 'Linux' : child.nice(-20)
-        results = pool.starmap( similarity.create_test_cases , [dishes_to_process] ) 
-        for result in results :
-            print(result)
-            json.dump(result,out_file)
+    slots = [dishes_to_process[i:i + 60 ] for i in range(0, len(dishes_to_process), 60 )]
+    files = []
+    for slot in slots :
+        files += similarity.split_task( cpu_count , slot , freq_dist , dishes , slots.index(slot))
     print('\n Done!')
-
+    print('Combining Files......')
+    result = []
+    for file_name in files :
+        with open(file_name , "r") as infile:
+            result.append(json.load(infile))
+    with open("merged_file.json", "w+") as outfile:
+        json.dump(result, outfile)
+    print('Removing temp files ....')
+    for file_name in files :
+        os.remove(file_name)
+    end = time.time()
+    print('Task completed in:', end-start)
