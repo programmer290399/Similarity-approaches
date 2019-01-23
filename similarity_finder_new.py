@@ -4,14 +4,12 @@ from nltk.corpus import stopwords
 from nltk.stem.porter import PorterStemmer
 from nltk.corpus import wordnet as wn
 import json
-from progress.bar import IncrementalBar
 import itertools
 from read_data import read_JSON
 from fuzzywuzzy import fuzz
 from fuzzywuzzy import process
 import multiprocessing
 from multiprocessing import Process 
-from multiprocessing import Queue
 import psutil
 from math import sqrt 
 import decimal 
@@ -19,7 +17,7 @@ from decimal import Decimal
 import os 
 import platform
 import time 
-import glob
+
 
 
 stop = stopwords.words('english')
